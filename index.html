@@ -43,9 +43,9 @@
             </div>
             <div class="card">
                 <h2>Set Measurement Time Range</h2>
-                <button id="Range18hButton" class="Range21hButton">18 hours</button>
-                <button id="Range36hButton" class="Range48hButton">36 hours</button>
-                <button id="Range72hButton" class="Range72hButton">72 hours</button>
+                <button id="Range18hBtn" class="onButton">18 hours</button>
+                <button id="Range36hBtn" class="onButton">36 hours</button>
+                <button id="Range72hBtn" class="onButton">72 hours</button>
                 <p class="gray-label">Last value sent: <span id="hourSpanSent"></span></p>
             </div>
         </div>
@@ -62,9 +62,9 @@
     const onButton = document.getElementById('onButton');
     const offButton = document.getElementById('offButton');
 
-    const Range18hButton = document.getElementById('Range21hButton');
-    const Range36hButton = document.getElementById('Range36hButton');
-    const Range72hButton = document.getElementById('Range72hButton');
+    const Range18hBtn = document.getElementById('Range21hBtn');
+    const Range36hBtn = document.getElementById('Range36hBtn');
+    const Range72hBtn = document.getElementById('Range72hBtn');
 
     const retrievedValue = document.getElementById('valueContainer');
     const latestValueSent = document.getElementById('valueSent');
@@ -100,9 +100,9 @@
     offButton.addEventListener('click', () => writeOnLEDCharacteristic(0));
 
     // use the same characteristics to write time range values, only good for test
-    Range18hButton.addEventListener('click', () => writeOnLEDCharacteristic(18));
-    Range36hButton.addEventListener('click', () => writeOnLEDCharacteristic(36));
-    Range72hButton.addEventListener('click', () => writeOnLEDCharacteristic(72));
+    Range18hBtn.addEventListener('click', () => writeOnLEDCharacteristic(18));
+    Range36hBtn.addEventListener('click', () => writeOnLEDCharacteristic(36));
+    Range72hBtn.addEventListener('click', () => writeOnLEDCharacteristic(72));
 
     // Check if BLE is available in your Browser
     function isWebBluetoothEnabled() {
