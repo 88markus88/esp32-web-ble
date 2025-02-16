@@ -35,18 +35,24 @@
                 <p class="reading"><span id="valueContainer">NaN</span></p>
                 <p class="gray-label">Last reading: <span id="timestamp"></span></p>
             </div>
-
             <div class="card">
                 <h2>Control GPIO 2</h2>
                 <button id="onButton" class="onButton">ON</button>
                 <button id="offButton" class="offButton">OFF</button>
                 <p class="gray-label">Last value sent: <span id="valueSent"></span></p>
             </div>
+            <div class="card">
+                <h2>Set Measurement Time Range</h2>
+                <button id="Range18hButton" class="Range21hButton">18 hours</button>
+                <button id="Range36hButton" class="Range48hButton">36 hours</button>
+                <button id="Range72hButton" class="Range72hButton">72 hours</button>
+                <p class="gray-label">Last value sent: <span id="hourSpanSent"></span></p>
+            </div>
         </div>
     </div>
     <div class="footer">
-        <p><a href="https://randomnerdtutorials.com/">Created by RandomNerdTutorials.com</a></p>
-        <p><a href="https://RandomNerdTutorials.com/esp32-web-bluetooth/">Read the full project here.</a></p>
+        <p>Created by 88markus88</p>
+        <p><a href="https://github.com/88markus88/ESP32_ePaper_Barograph">See github for full project.</a></p>
     </div>
 </body>
 <script>
@@ -55,13 +61,21 @@
     const disconnectButton = document.getElementById('disconnectBleButton');
     const onButton = document.getElementById('onButton');
     const offButton = document.getElementById('offButton');
+
+    const Range18hButton = document.getElementById('Range21hButton');
+    const Range36hButton = document.getElementById('Range36hButton');
+    const Range72hButton = document.getElementById('Range72hButton');
+
     const retrievedValue = document.getElementById('valueContainer');
     const latestValueSent = document.getElementById('valueSent');
+
+    const hourSpanSent = document.getElementById('hourSpanSent');
+
     const bleStateContainer = document.getElementById('bleState');
     const timestampContainer = document.getElementById('timestamp');
 
     //Define BLE Device Specs
-    var deviceName ='ESP32';
+    var deviceName ='ESP32BarografCrowPanel';
     var bleService = '19b10000-e8f2-537e-4f6c-d104768a1214';
     var ledCharacteristic = '19b10002-e8f2-537e-4f6c-d104768a1214';
     var sensorCharacteristic= '19b10001-e8f2-537e-4f6c-d104768a1214';
@@ -82,8 +96,13 @@
     disconnectButton.addEventListener('click', disconnectDevice);
 
     // Write to the ESP32 LED Characteristic
-    onButton.addEventListener('click', () => writeOnCharacteristic(1));
-    offButton.addEventListener('click', () => writeOnCharacteristic(0));
+    onButton.addEventListener('click', () => writeOnLEDCharacteristic(1));
+    offButton.addEventListener('click', () => writeOnLEDCharacteristic(0));
+
+    // use the same characteristics to write time range values, only good for test
+    Range18hButton.addEventListener('click', () => writeOnLEDCharacteristic(18));
+    Range36hButton.addEventListener('click', () => writeOnLEDCharacteristic(36));
+    Range72hButton.addEventListener('click', () => writeOnLEDCharacteristic(72));
 
     // Check if BLE is available in your Browser
     function isWebBluetoothEnabled() {
@@ -154,7 +173,7 @@
         timestampContainer.innerHTML = getDateTime();
     }
 
-    function writeOnCharacteristic(value){
+    function writeOnLEDCharacteristic(value){
         if (bleServer && bleServer.connected) {
             bleServiceFound.getCharacteristic(ledCharacteristic)
             .then(characteristic => {
