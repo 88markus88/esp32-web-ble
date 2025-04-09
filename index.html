@@ -1,5 +1,5 @@
 <!--
-  Rui Santos
+  Based on: Rui Santos
   Complete project details at https://RandomNerdTutorials.com/esp32-web-bluetooth/
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
@@ -17,7 +17,7 @@
 </head>
 <body>
     <div class="topnav">
-        <h1>ESP32 Web BLE Application</h1>
+        <h1>ESP32 Barograf WebBLE App</h1>
     </div>
     <div class="content">
         <div class="card-grid">
@@ -31,27 +31,47 @@
         </div>
         <div class="card-grid">
             <div class="card">
-                <h2>Fetched Value</h2>
-                <p class="reading"><span id="valueContainer">NaN</span></p>
-                <p class="gray-label">Last reading: <span id="timestamp"></span></p>
-            </div>
-            <div class="card">
-                <h2>Control GPIO 2</h2>
-                <button id="onButton" class="onButton">ON</button>
-                <button id="offButton" class="offButton">OFF</button>
-                <p class="gray-label">Last value sent: <span id="valueSent"></span></p>
-            </div>
-            <div class="card">
                 <h2>Set Measurement Time Range</h2>
                 <button id="Range18hBtn" class="timeRangeButton">18 hours</button>
                 <button id="Range36hBtn" class="timeRangeButton">36 hours</button>
                 <button id="Range72hBtn" class="timeRangeButton">72 hours</button>
-                <p class="gray-label">Last value sent: <span id="hourSpanSent"></span></p>
+            </div>
+            <div class="card">
+                <h2>Set Graphics Type</h2>
+                <button id="Graphics_P_Btn" class="graphTypeButton">P</button>
+                <button id="Graphics_T_Btn" class="graphTypeButton">T</button>
+                <button id="Graphics_H_Btn" class="graphTypeButton">H</button>
+				<br>
+	            <button id="Graphics_PTH_Btn" class="graphTypeButton">PTH</button>
+                <button id="Graphics_PT_Btn" class="graphTypeButton">PT</button>
+                <button id="Graphics_PH_Btn" class="graphTypeButton">PH</button>
+				<button id="Graphics_TH_Btn" class="graphTypeButton">TH</button>
+            </div>
+			<div class="card">
+                <h2>Graphics in Black on White or Inverted</h2>
+                <button id="Inversion_Off_Btn" class="graphTypeButton">Black on White</button>
+                <button id="Inversion_On_Btn" class="graphTypeButton">White on Black</button>
+            </div>
+			<div class="card">
+                <h2>Correct Pressure to Sea Level</h2>
+                <button id="pCorr_On_Btn" class="graphTypeButton">Correction ON</button>
+				<button id="pCorr_Off_Btn" class="graphTypeButton">Correction OFF</button>
+				<br>
+				<label for="corrVal">Correction: </label>
+				<input type="text" id="pCorrValue" name="fname">
+				<label for="mbar"> mbar</label>
+                <button id="pCorr_Apply_Btn" class="graphTypeButton">Apply</button>
+            </div>
+            <div class="card">
+                <h2>Received Info</h2>
+                <p class="reading"><span id="valueContainer">NaN</span></p>
+                <p class="gray-label">Last reading: <span id="timestamp"></span></p>
+                <p class="gray-label">Last value sent: <span id="valueSent"></span></p>
             </div>
         </div>
     </div>
     <div class="footer">
-        <p>Created by 88markus88</p>
+        <p>Created by Markus P.</p>
         <p><a href="https://github.com/88markus88/ESP32_ePaper_Barograph">See github for full project.</a></p>
     </div>
 </body>
@@ -59,12 +79,26 @@
     // DOM Elements
     const connectButton = document.getElementById('connectBleButton');
     const disconnectButton = document.getElementById('disconnectBleButton');
-    const onButton = document.getElementById('onButton');
-    const offButton = document.getElementById('offButton');
 
     const Range18hBtn = document.getElementById('Range18hBtn');
     const Range36hBtn = document.getElementById('Range36hBtn');
     const Range72hBtn = document.getElementById('Range72hBtn');
+	
+    const Graphics_P_Btn = document.getElementById('Graphics_P_Btn');
+    const Graphics_T_Btn = document.getElementById('Graphics_T_Btn');
+    const Graphics_H_Btn = document.getElementById('Graphics_H_Btn');
+    const Graphics_PTH_Btn = document.getElementById('Graphics_PTH_Btn');
+    const Graphics_PT_Btn = document.getElementById('Graphics_PT_Btn');
+    const Graphics_PH_Btn = document.getElementById('Graphics_PH_Btn');
+    const Graphics_TH_Btn = document.getElementById('Graphics_TH_Btn');
+	
+	const Inversion_On_Btn = document.getElementById('Inversion_On_Btn');
+	const Inversion_Off_Btn = document.getElementById('Inversion_Off_Btn');
+	
+	const pCorr_On_Btn = document.getElementById('pCorr_On_Btn');
+	const pCorr_Off_Btn = document.getElementById('pCorr_Off_Btn');
+	const pCorrValue = document.getElementById('pCorrValue');
+    const pCorr_Apply_Btn = document.getElementById('pCorr_Apply_Btn');
 
     const retrievedValue = document.getElementById('valueContainer');
     const latestValueSent = document.getElementById('valueSent');
@@ -75,15 +109,19 @@
     const timestampContainer = document.getElementById('timestamp');
 
     //Define BLE Device Specs
-    var deviceName ='ESP32BarografCrowPanel';
-    var bleService = '19b10000-e8f2-537e-4f6c-d104768a1214';
-    var ledCharacteristic = '19b10002-e8f2-537e-4f6c-d104768a1214';
-    var sensorCharacteristic= '19b10001-e8f2-537e-4f6c-d104768a1214';
+    //var deviceName ='ESP32BarografCrowPanel';
+    // var bleService = '19b10000-e8f2-537e-4f6c-d104768a1214';
+    // var cmdCharacteristic = '19b10002-e8f2-537e-4f6c-d104768a1214';
+    // var statusCharacteristic= '19b10001-e8f2-537e-4f6c-d104768a1214';
+
+    var bleService = '69254dbb-330a-459f-a450-6c0b7f1dd986';
+    var cmdCharacteristic = '8338c6a9-02cf-4771-a4f4-4058c989f5f5';
+    var statusCharacteristic= 'b2e16423-d211-48d8-a757-fc15b1c64c0a';
 
     //Global Variables to Handle Bluetooth
     var bleServer;
     var bleServiceFound;
-    var sensorCharacteristicFound;
+    var statusCharacteristicFound;
 
     // Connect Button (search for BLE Devices only if BLE is available)
     connectButton.addEventListener('click', (event) => {
@@ -95,15 +133,29 @@
     // Disconnect Button
     disconnectButton.addEventListener('click', disconnectDevice);
 
-    // Write to the ESP32 LED Characteristic
-    onButton.addEventListener('click', () => writeOnLEDCharacteristic(1));
-    offButton.addEventListener('click', () => writeOnLEDCharacteristic(0));
+	// use the same characteristics to write time range values, a little better
+    Range18hBtn.addEventListener('click', () => writeOnCmdCharacteristic("ATT,18"));
+    Range36hBtn.addEventListener('click', () => writeOnCmdCharacteristic("ATT,36"));
+    Range72hBtn.addEventListener('click', () => writeOnCmdCharacteristic("ATT,72"));
+	
+	// and now for the graphics type buttons
+	Graphics_P_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,P"));
+	Graphics_T_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,T"));
+	Graphics_H_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,H"));
+	Graphics_PT_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,PT"));
+	Graphics_PH_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,PH"));
+	Graphics_TH_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,TH"));
+	Graphics_PTH_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATG,PTH"));
 
-    // use the same characteristics to write time range values, only good for test
-    Range18hBtn.addEventListener('click', () => writeOnLEDCharacteristic(18));
-    Range36hBtn.addEventListener('click', () => writeOnLEDCharacteristic(36));
-    Range72hBtn.addEventListener('click', () => writeOnLEDCharacteristic(72));
-
+	// and now for the Inversion
+	Inversion_On_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATI,1"));
+	Inversion_Off_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATI,0"));
+	
+	// and now for the Pressure correction
+	pCorr_On_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATC,1"));
+	pCorr_Off_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATC,0"));
+    pCorr_Apply_Btn.addEventListener('click', () => writeOnCmdCharacteristic("ATD"));
+    
     // Check if BLE is available in your Browser
     function isWebBluetoothEnabled() {
         if (!navigator.bluetooth) {
@@ -116,10 +168,27 @@
     }
 
     // Connect to BLE Device and Enable Notifications
+    // for filters see also:
+    // https://stackoverflow.com/questions/75815353/web-bluetooth-want-to-exclude-certain-devices-when-using-navigator-bluetooth-re
+    // https://developer.chrome.com/docs/capabilities/bluetooth?hl=de#exclusion-filters
+
     function connectToDevice(){
+        //var deviceName ='ESP32BarografCP';
+        var deviceNamePrefix ='ESP32Barograf';
+        //var deviceName ='ESP32Barograf_Lolin32_BLE_744EAF6CDDA0';  // too long, max 31 char!
+
         console.log('Initializing Bluetooth...');
-        navigator.bluetooth.requestDevice({
-            filters: [{name: deviceName}],
+        navigator.bluetooth.requestDevice({           
+            filters: [{namePrefix: deviceNamePrefix}], // this works too
+            //filters: [{name: deviceName}], // this works
+
+            //filters: [      // these filters are OR-ed together
+            //   { services: [bleService] }
+            //   ,{name: 'ESP32BarografCrowPanel'}
+            //   ,{name: 'ESP32Barograf_Lolin32_BLE_744EAF6CDDA0'}
+            //  ,{namePrefix: 'ESP32Barograf'}
+            //],
+            //acceptAllDevices: true,
             optionalServices: [bleService]
         })
         .then(device => {
@@ -137,11 +206,11 @@
         .then(service => {
             bleServiceFound = service;
             console.log("Service discovered:", service.uuid);
-            return service.getCharacteristic(sensorCharacteristic);
+            return service.getCharacteristic(statusCharacteristic);
         })
         .then(characteristic => {
             console.log("Characteristic discovered:", characteristic.uuid);
-            sensorCharacteristicFound = characteristic;
+            statusCharacteristicFound = characteristic;
             characteristic.addEventListener('characteristicvaluechanged', handleCharacteristicChange);
             characteristic.startNotifications();
             console.log("Notifications Started.");
@@ -166,24 +235,117 @@
         connectToDevice();
     }
 
+	// get a single status array element and set buttons etc. according to its type (1st entry) and value (2nd entry)
+	function handleStatusInfoElement(s){
+		console.log("StatusInfoElement: ",s);
+		var subArray = s.split(',');
+		console.log("subarrays:", subArray[0], subArray[1]); 
+		// Measurement time range status info
+		if(subArray[0] == "STT"){
+			console.log("STT found - Time range");
+			Range18hBtn.style.backgroundColor = "Gray";
+			Range36hBtn.style.backgroundColor = "Gray";
+			Range72hBtn.style.backgroundColor = "Gray";
+			if(subArray[1]==18) 
+				Range18hBtn.style.backgroundColor = "red";
+			if(subArray[1]==36) 
+				Range36hBtn.style.backgroundColor = "red";
+			if(subArray[1]==72) 
+				Range72hBtn.style.backgroundColor = "red";	
+
+		}	
+		// Graphics Type status info
+		if(subArray[0] == "STG"){
+			console.log("STG found - Graphics Type: ",subArray[1]);
+			Graphics_P_Btn.style.backgroundColor = "Gray";
+			Graphics_T_Btn.style.backgroundColor = "Gray";
+			Graphics_H_Btn.style.backgroundColor = "Gray";
+			Graphics_PT_Btn.style.backgroundColor = "Gray";
+			Graphics_PH_Btn.style.backgroundColor = "Gray";
+			Graphics_TH_Btn.style.backgroundColor = "Gray";
+			Graphics_PTH_Btn.style.backgroundColor = "Gray";
+			if(subArray[1]=="P") 
+				Graphics_P_Btn.style.backgroundColor = "red";
+			if(subArray[1]=="T") 
+				Graphics_T_Btn.style.backgroundColor = "red";
+			if(subArray[1]=="H") 
+				Graphics_H_Btn.style.backgroundColor = "red";	
+			if(subArray[1]=="PT") 
+				Graphics_PT_Btn.style.backgroundColor = "red";
+			if(subArray[1]=="PH") 
+				Graphics_PH_Btn.style.backgroundColor = "red";
+			if(subArray[1]=="TH") 
+				Graphics_TH_Btn.style.backgroundColor = "red";		
+			if(subArray[1]=="PTH") 
+				Graphics_PTH_Btn.style.backgroundColor = "red";			
+		}	
+			
+		// Graphics Inversion status info
+		if(subArray[0] == "STI"){
+			console.log("STI found - Inversion: ",subArray[1]);
+			Inversion_On_Btn.style.backgroundColor = "Gray";
+			Inversion_Off_Btn.style.backgroundColor = "Gray";
+			if(subArray[1]==1) 
+				Inversion_On_Btn.style.backgroundColor = "red";
+			if(subArray[1]==0) 
+				Inversion_Off_Btn.style.backgroundColor = "red";	
+		}		
+			
+		// Pressure correction status info
+		if(subArray[0] == "STC"){
+			console.log("STC found - Correction: ",subArray[1]);
+			pCorr_On_Btn.style.backgroundColor = "Gray";
+			pCorr_Off_Btn.style.backgroundColor = "Gray";
+			if(subArray[1]==1) 
+				pCorr_On_Btn.style.backgroundColor = "red";
+			if(subArray[1]==0) 
+				pCorr_Off_Btn.style.backgroundColor = "red";		
+		}
+
+		// Pressure correction value info
+		if(subArray[0] == "STD"){
+			console.log("STD found - Pressure correction value: ",subArray[1]);
+			//subArray[1]=15.2;
+			pCorrValue.value = subArray[1];
+			//pCorrValue.value = 1234.5;
+		}
+			
+		// #04AA6D /* Green */ #008CBA /* Blue */  #f44336 /* Red */ #e7e7e7 black /* Gray */ #555555 
+	}
+
+    // handle status data received from ESP32. One string contains multiple elements, separated by 
+    // Semicolons. Within each element the identifier and parameter are separated by a comma.
     function handleCharacteristicChange(event){
         const newValueReceived = new TextDecoder().decode(event.target.value);
         console.log("Characteristic value changed: ", newValueReceived);
+		// split the received string into an array of semicolon separated statements
+		var statusArray = newValueReceived.split(';')
+		for(var i = 0; i<statusArray.length;i++){
+			//console.log(statusArray[i]);	
+			handleStatusInfoElement(statusArray[i]); // test
+		}
+	
         retrievedValue.innerHTML = newValueReceived;
         timestampContainer.innerHTML = getDateTime();
     }
 
-    function writeOnLEDCharacteristic(value){
+    // This function is called to send data to the ESP32
+    function writeOnCmdCharacteristic(value){
+        if(value=="ATD"){   // add value to string if pressure correction value to be set
+            value = value + ","+ pCorrValue.value;
+        }    
         if (bleServer && bleServer.connected) {
-            bleServiceFound.getCharacteristic(ledCharacteristic)
+            bleServiceFound.getCharacteristic(cmdCharacteristic)
             .then(characteristic => {
                 console.log("Found the LED characteristic: ", characteristic.uuid);
-                const data = new Uint8Array([value]);
-                return characteristic.writeValue(data);
+                //const data = new Uint8Array([value]);
+                //return characteristic.writeValue(data);
+                var enc = new TextEncoder(); // always utf-8
+                return characteristic.writeValue(enc.encode(value), value.length);
             })
             .then(() => {
                 latestValueSent.innerHTML = value;
-                console.log("Value written to LEDcharacteristic:", value);
+                console.log("Value written to cmdCharacteristic:", value);
             })
             .catch(error => {
                 console.error("Error writing to the LED characteristic: ", error);
@@ -197,8 +359,8 @@
     function disconnectDevice() {
         console.log("Disconnect Device.");
         if (bleServer && bleServer.connected) {
-            if (sensorCharacteristicFound) {
-                sensorCharacteristicFound.stopNotifications()
+            if (statusCharacteristicFound) {
+                statusCharacteristicFound.stopNotifications()
                     .then(() => {
                         console.log("Notifications Stopped");
                         return bleServer.disconnect();
@@ -231,10 +393,9 @@
         var minutes = ("00" + currentdate.getMinutes()).slice(-2);
         var seconds = ("00" + currentdate.getSeconds()).slice(-2);
 
-        var datetime = day + "/" + month + "/" + year + " at " + hours + ":" + minutes + ":" + seconds;
+        var datetime = day + "." + month + "." + year + " at " + hours + ":" + minutes + ":" + seconds;
         return datetime;
     }
-
 
 </script>
 
